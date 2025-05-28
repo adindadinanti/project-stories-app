@@ -2,7 +2,6 @@ import { getAccessToken } from '../utils/auth';
 import { BASE_URL } from '../config';
 
 const ENDPOINTS = {
-  // Auth
   REGISTER: `${BASE_URL}/register`,
   LOGIN: `${BASE_URL}/login`,
   MY_USER_INFO: `${BASE_URL}/users/me`,
@@ -96,7 +95,7 @@ export async function getAllReports({ page, size, location } = {}) {
     return {
       ok: false,
       message: error.message,
-      data: []
+      data: [] 
     };
   }
 }
@@ -112,7 +111,7 @@ export async function storeNewReport({
   const formData = new FormData();
   formData.append('description', description);
   formData.append('photo', photo);
-  
+
   if (lat !== undefined) formData.append('lat', lat.toString());
   if (lon !== undefined) formData.append('lon', lon.toString());
 
@@ -128,7 +127,7 @@ export async function storeNewReport({
     const data = await response.json();
 
     return {
-      ok: !data.error,
+      ok: !data.error, 
       message: data.message,
       data: data
     };
@@ -141,38 +140,123 @@ export async function storeNewReport({
     };
   }
 
+  
 }
 
 export async function subscribePushNotification(subscription) {
   const accessToken = getAccessToken();
-  const response = await fetch(`${BASE_URL}/notifications/subscribe`, {
+  
+  try {
+    const response = await fetch(`${BASE_URL}/notifications/subscribe`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth
+        }
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      console.error('Error dari server:', data.message);
+      return { ok: false, message: data.message };
+    }
+
+    return { ok: true, data };
+  } catch (error) {
+    console.error('Gagal mengirim subscription ke server:', error);
+    return { ok: false, message: error.message };
+  }
+}
+
+export async function unsubscribePushNotification(subscription) {
+  const accessToken = getAccessToken();
+  
+  try {
+    const response = await fetch(`${BASE_URL}/notifications/subscribe`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ endpoint: subscription.endpoint })
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      console.error('Error dari server:', data.message);
+      return { ok: false, message: data.message };
+    }
+
+    return { ok: true, data };
+  } catch (error) {
+    console.error('Gagal unsubscribe:', error);
+    return { ok: false, message: error.message };
+  }
+}
+
+export async function sendReportToMeViaNotification(reportId) {
+  const accessToken = getAccessToken();
+
+  const fetchResponse = await fetch(ENDPOINTS.SEND_REPORT_TO_ME(reportId), {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({
-      endpoint: subscription.endpoint,
-      keys: {
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth
-      }
-    })
   });
-  return response.json();
-} 
+  const json = await fetchResponse.json();
 
-export async function unsubscribePushNotification(endpoint) {
+  return {
+    ...json,
+    ok: fetchResponse.ok,
+  };
+}
+
+export async function sendReportToUserViaNotification(reportId, { userId }) {
   const accessToken = getAccessToken();
-  const response = await fetch(`${BASE_URL}/notifications/subscribe`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ endpoint })
+  const data = JSON.stringify({
+    userId,
   });
-  return response.json();
+
+  const fetchResponse = await fetch(ENDPOINTS.SEND_REPORT_TO_USER(reportId), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: data,
+  });
+  const json = await fetchResponse.json();
+
+  return {
+    ...json,
+    ok: fetchResponse.ok,
+  };
+}
+
+export async function sendReportToAllUserViaNotification(reportId) {
+  const accessToken = getAccessToken();
+
+  const fetchResponse = await fetch(ENDPOINTS.SEND_REPORT_TO_ALL_USER(reportId), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  const json = await fetchResponse.json();
+
+  return {
+    ...json,
+    ok: fetchResponse.ok,
+  };
 }
 
 

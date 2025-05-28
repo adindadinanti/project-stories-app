@@ -103,8 +103,7 @@ export default class Camera {
           deviceId,
         },
       });
-
-      // Show available camera after camera permission granted
+      
       await this.#populateDeviceList(stream);
 
       return stream;
@@ -117,7 +116,6 @@ export default class Camera {
   async launch() {
     this.#currentStream = await this.#getStream();
 
-    // Record all MediaStream in global context
     Camera.addNewStream(this.#currentStream);
 
     this.#videoElement.srcObject = this.#currentStream;

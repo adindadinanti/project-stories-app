@@ -71,10 +71,12 @@ export default class SavedPage {
         try {
           const db = new StoryDatabase();
           await db.removeSavedStory(storyId);
-
+          
+          // Remove the story item from UI
           const storyItem = button.closest('.saved-story-item');
           storyItem.remove();
           
+          // Show message if no stories left
           if (document.querySelectorAll('.saved-story-item').length === 0) {
             document.getElementById('saved-reports-list').innerHTML = 
               generateReportsListEmptyTemplate('Tidak ada cerita yang tersimpan');

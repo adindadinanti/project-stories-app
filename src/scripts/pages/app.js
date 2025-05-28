@@ -1,10 +1,14 @@
 import { getActiveRoute } from '../routes/url-parser';
-import { PushNotification } from '../utils/notification';
+import { isCurrentPushSubscriptionAvailable,
+  subscribe,
+  unsubscribe } from '../utils/notification';
 import {
+  generateSubscribeButtonTemplate,
+  generateUnsubscribeButtonTemplate,
   generateAuthenticatedNavigationListTemplate,
   generateUnauthenticatedNavigationListTemplate,
 } from '../templates';
-import { setupSkipToContent, transitionHelper } from '../utils';
+import { isServiceWorkerAvailable, setupSkipToContent, transitionHelper } from '../utils';
 import { getAccessToken, getLogout } from '../utils/auth';
 import { routes } from '../routes/routes';
 
@@ -26,27 +30,6 @@ export default class App {
   #init() {
     setupSkipToContent(this.#skipLinkButton, this.#content);
     this.#setupDrawer();
-  }
-
-  async #registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-      try {
-        await navigator.serviceWorker.register('/sw.js');
-        console.log('Service Worker registered');
-
-        if ('PushManager' in window) {
-          const permission = await Notification.requestPermission();
-          if (permission === 'granted') {
-            const subscription = await PushNotification.subscribeUser();
-            if (subscription) {
-              await subscribePushNotification(subscription);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Service Worker registration failed:', error);
-      }
-    }
   }
 
   #setupDrawer() {
@@ -95,9 +78,33 @@ export default class App {
     });
   }
 
+  async #setupPushNotification() {
+    const pushNotificationTools = document.getElementById('push-notification-tools');
+    const isSubscribed = await isCurrentPushSubscriptionAvailable();
+
+    if (isSubscribed) {
+      pushNotificationTools.innerHTML = generateUnsubscribeButtonTemplate();
+      document.getElementById('unsubscribe-button').addEventListener('click', () => {
+        unsubscribe().finally(() => {
+          this.#setupPushNotification();
+        });
+      });
+
+      return;
+    }
+
+    pushNotificationTools.innerHTML = generateSubscribeButtonTemplate();
+    document.getElementById('subscribe-button').addEventListener('click', () => {
+      subscribe().finally(() => {
+        this.#setupPushNotification();
+      });
+    });
+  }
+
   async renderPage() {
     const url = getActiveRoute();
     const route = routes[url];
+
     const page = route();
 
     const transition = transitionHelper({
@@ -111,6 +118,9 @@ export default class App {
     transition.updateCallbackDone.then(() => {
       scrollTo({ top: 0, behavior: 'instant' });
       this.#setupNavigationList();
+      if (isServiceWorkerAvailable()) {
+        this.#setupPushNotification();
+      }
     });
   }
 }

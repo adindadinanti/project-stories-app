@@ -14,7 +14,7 @@
   to {
     transform: translateX(-30px);
   }
-} 
+}
 
 @keyframes slide-from-right {
   from {
@@ -44,7 +44,7 @@
   /* LOGIN & REGISTER */
   .register-form,
   .login-form {
-    border: 1px solid var(--border-color);
+    border: 1px solid #d4d4d4;
   }
 
   /* Report detail */

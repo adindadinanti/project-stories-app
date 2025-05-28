@@ -32,12 +32,13 @@ export default class NewPresenter {
   
       if (!response.ok) {
         console.error('postNewReport: response:', response);
-        PushNotification.show('error', response.message || 'Gagal mengupload cerita');  // Gunakan langsung
+        PushNotification.show('error', error.message || 'Gagal mengupload cerita');
         this.#view.storeFailed(response.message);
         return;
       }
-  
+
       PushNotification.show('success', 'Cerita berhasil diupload!');
+  
       this.#view.storeSuccessfully(response.message);
       
     } catch (error) {
